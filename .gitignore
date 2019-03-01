@@ -7,3 +7,5 @@ build/
 .settings/
 /repo/
 *.log
+.DS_Store
+*/.DS_Store
