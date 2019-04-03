@@ -1,16 +1,11 @@
 package net.minecraftforge.installer;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -22,21 +17,14 @@ import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JScrollPane;
 import javax.swing.JTextField;
-import javax.swing.ListCellRenderer;
-import javax.swing.SwingConstants;
 import javax.swing.border.LineBorder;
 
 import com.google.common.base.Predicate;
@@ -45,15 +33,13 @@ import com.google.common.base.Throwables;
 public class InstallerPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private File targetDir;
-    private ButtonGroup choiceButtonGroup;
     private JTextField selectedDirText;
     private JLabel infoLabel;
     private JButton sponsorButton;
     private JDialog dialog;
-    //private JLabel sponsorLogo;
     private JPanel sponsorPanel;
     private JPanel fileEntryPanel;
-    private OptionalListEntry[] optionals;
+    private ClientInstall clientInstall = new ClientInstall();
 
     private class FileSelectAction extends AbstractAction
     {
@@ -78,18 +64,6 @@ public class InstallerPanel extends JPanel {
                 break;
             }
         }
-    }
-
-    private class SelectButtonAction extends AbstractAction
-    {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public void actionPerformed(ActionEvent e)
-        {
-            updateFilePath();
-        }
-
     }
 
     private static final String URL = "89504E470D0A1A0A0000000D4948445200000014000000160803000000F79F4C3400000012504C5445FFFFFFCCFFFF9999996666663333330000009E8B9AE70000000274524E53FF00E5B7304A000000564944415478016DCB410E003108425169E5FE579E98584246593EBF8165C24C5C614BED08455ECABC947929F392584A12CD8021EBEF91B0BD46A13969682BCC45E3706AE04E0DE0E42C819FA3D10F10BE954DC4C4DE07EB6A0497D14F4E8F0000000049454E44AE426082";
@@ -153,12 +127,6 @@ public class InstallerPanel extends JPanel {
         sponsorPanel.setAlignmentX(CENTER_ALIGNMENT);
         sponsorPanel.setAlignmentY(CENTER_ALIGNMENT);
 
-//        sponsorLogo = new JLabel();
-//        sponsorLogo.setSize(50, 20);
-//        sponsorLogo.setAlignmentX(CENTER_ALIGNMENT);
-//        sponsorLogo.setAlignmentY(CENTER_ALIGNMENT);
-//        sponsorPanel.add(sponsorLogo);
-
         sponsorButton = new JButton();
         sponsorButton.setAlignmentX(CENTER_ALIGNMENT);
         sponsorButton.setAlignmentY(CENTER_ALIGNMENT);
@@ -175,32 +143,6 @@ public class InstallerPanel extends JPanel {
 
         this.add(sponsorPanel);
 
-        choiceButtonGroup = new ButtonGroup();
-
-        JPanel choicePanel = new JPanel();
-        choicePanel.setLayout(new BoxLayout(choicePanel, BoxLayout.Y_AXIS));
-        boolean first = true;
-        SelectButtonAction sba = new SelectButtonAction();
-        for (InstallerAction action : InstallerAction.values())
-        {
-            if (action == InstallerAction.CLIENT && VersionInfo.hideClient()) continue;
-            JRadioButton radioButton = new JRadioButton();
-            radioButton.setAction(sba);
-            radioButton.setText(action.getButtonLabel());
-            radioButton.setActionCommand(action.name());
-            radioButton.setToolTipText(action.getTooltip());
-            radioButton.setSelected(first);
-            radioButton.setAlignmentX(LEFT_ALIGNMENT);
-            radioButton.setAlignmentY(CENTER_ALIGNMENT);
-            choiceButtonGroup.add(radioButton);
-            choicePanel.add(radioButton);
-            first = false;
-        }
-
-        choicePanel.setAlignmentX(RIGHT_ALIGNMENT);
-        choicePanel.setAlignmentY(CENTER_ALIGNMENT);
-        add(choicePanel);
-
         JPanel entryPanel = new JPanel();
         entryPanel.setLayout(new BoxLayout(entryPanel,BoxLayout.X_AXIS));
 
@@ -214,7 +156,7 @@ public class InstallerPanel extends JPanel {
         JButton dirSelect = new JButton();
         dirSelect.setAction(new FileSelectAction());
         dirSelect.setText("...");
-        dirSelect.setToolTipText("Select an alternative minecraft directory");
+        dirSelect.setToolTipText("Select an alternative Minecraft directory");
         entryPanel.add(dirSelect);
 
         entryPanel.setAlignmentX(LEFT_ALIGNMENT);
@@ -251,28 +193,8 @@ public class InstallerPanel extends JPanel {
 
         }
 
-        InstallerAction action = InstallerAction.valueOf(choiceButtonGroup.getSelection().getActionCommand());
-        boolean valid = action.isPathValid(targetDir);
+        boolean valid = clientInstall.isPathValid(targetDir);
 
-        String sponsorMessage = action.getSponsorMessage();
-        if (sponsorMessage != null)
-        {
-            sponsorButton.setText(sponsorMessage);
-            sponsorButton.setToolTipText(action.getSponsorURL());
-            if (action.getSponsorLogo() != null)
-            {
-                sponsorButton.setIcon(action.getSponsorLogo());
-            }
-            else
-            {
-                sponsorButton.setIcon(null);
-            }
-            sponsorPanel.setVisible(true);
-        }
-        else
-        {
-            sponsorPanel.setVisible(false);
-        }
         if (valid)
         {
             selectedDirText.setForeground(Color.BLACK);
@@ -283,7 +205,7 @@ public class InstallerPanel extends JPanel {
         {
             selectedDirText.setForeground(Color.RED);
             fileEntryPanel.setBorder(new LineBorder(Color.RED));
-            infoLabel.setText("<html>"+action.getFileError(targetDir)+"</html>");
+            infoLabel.setText("<html>"+clientInstall.getFileError(targetDir)+"</html>");
             infoLabel.setVisible(true);
         }
         if (dialog!=null)
@@ -307,28 +229,18 @@ public class InstallerPanel extends JPanel {
         int result = (Integer) (optionPane.getValue() != null ? optionPane.getValue() : -1);
         if (result == JOptionPane.OK_OPTION)
         {
-            final OptionalListEntry[] ents = this.optionals;
             Predicate<String> optPred = new Predicate<String>()
             {
                 @Override
                 public boolean apply(String input)
                 {
-                    if (ents == null)
-                        return true;
-
-                    for (OptionalListEntry ent : ents)
-                    {
-                        if (ent.lib.getArtifact().equals(input))
-                            return ent.isEnabled();
-                    }
-
                     return false;
                 }
             };
-            InstallerAction action = InstallerAction.valueOf(choiceButtonGroup.getSelection().getActionCommand());
-            if (action.run(targetDir, optPred))
+
+            if (clientInstall.run(targetDir, optPred))
             {
-                JOptionPane.showMessageDialog(null, action.getSuccessMessage(), "Complete", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(null, clientInstall.getSuccessMessage(), "Complete", JOptionPane.INFORMATION_MESSAGE);
             }
         }
         dialog.dispose();
@@ -353,20 +265,5 @@ public class InstallerPanel extends JPanel {
         {
             JOptionPane.showMessageDialog(InstallerPanel.this, "An error occurred launching the browser", "Error launching browser", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private static class OptionalListEntry
-    {
-        OptionalLibrary lib;
-        private boolean enabled = false;
-
-        OptionalListEntry(OptionalLibrary lib)
-        {
-            this.lib = lib;
-            this.enabled = lib.getDefault();
-        }
-
-        public boolean isEnabled(){ return this.enabled; }
-        public void setEnabled(boolean v){ this.enabled = v; }
     }
 }
