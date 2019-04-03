@@ -33,25 +33,21 @@ import com.google.common.io.InputSupplier;
 
 public class DownloadUtils {
     public static final String LIBRARIES_URL = "https://libraries.minecraft.net/";
-    public static final String VERSION_URL_SERVER = "https://s3.amazonaws.com/Minecraft.Download/versions/{MCVER}/minecraft_server.{MCVER}.jar";
     public static final String VERSION_URL_CLIENT = "https://s3.amazonaws.com/Minecraft.Download/versions/{MCVER}/{MCVER}.jar";
+    public static final String ANVIL_URL_CLIENT = "https://s3.amazonaws.com/minerl/plugin/replaymod-1.12.2-2.1.2-227-g4a97f9e.jar";
 
     private static final String PACK_NAME = ".pack.xz";
     public static boolean OFFLINE_MODE = false;
 
-    public static int downloadInstalledLibraries(boolean isClient, File librariesDir, IMonitor monitor, List<LibraryInfo> libraries, int progress, List<Artifact> grabbed, List<Artifact> bad)
-    {
-        for (LibraryInfo library : libraries)
-        {
+    public static int downloadInstalledLibraries(boolean isClient, File librariesDir, IMonitor monitor, List<LibraryInfo> libraries, int progress, List<Artifact> grabbed, List<Artifact> bad) {
+        for (LibraryInfo library : libraries) {
             Artifact artifact = library.getArtifact();
             List<String> checksums = library.getChecksums();
-            if (library.isCorrectSide() && library.isEnabled())
-            {
+            if (library.isCorrectSide() && library.isEnabled()) {
                 monitor.setNote(String.format("Considering library %s", artifact.getDescriptor()));
                 File libPath = artifact.getLocalPath(librariesDir);
                 String libURL = library.getURL();
-                if (libPath.exists() && checksumValid(libPath, checksums))
-                {
+                if (libPath.exists() && checksumValid(libPath, checksums)) {
                     monitor.setProgress(progress++);
                     continue;
                 }
@@ -61,59 +57,40 @@ public class DownloadUtils {
                 libURL += artifact.getPath();
 
                 File packFile = new File(libPath.getParentFile(), libPath.getName() + PACK_NAME);
-                if (!downloadFile(artifact.getDescriptor(), packFile, libURL + PACK_NAME, null))
-                {
+                if (!downloadFile(artifact.getDescriptor(), packFile, libURL + PACK_NAME, null)) {
                     monitor.setNote(String.format("Trying unpacked library %s", artifact.getDescriptor()));
                     if (!downloadFile(artifact.getDescriptor(), libPath, libURL, checksums) &&
-                        !extractFile(artifact, libPath, checksums))
-                    {
-                        if (!libURL.startsWith(LIBRARIES_URL) || !isClient)
-                        {
+                            !extractFile(artifact, libPath, checksums)) {
+                        if (!libURL.startsWith(LIBRARIES_URL) || !isClient) {
                             bad.add(artifact);
-                        }
-                        else
-                        {
+                        } else {
                             monitor.setNote("Unmrriored file failed, Mojang launcher should download at next run, non fatal");
                         }
-                    }
-                    else
-                    {
+                    } else {
                         grabbed.add(artifact);
                     }
-                }
-                else
-                {
-                    try
-                    {
+                } else {
+                    try {
                         monitor.setNote(String.format("Unpacking packed file %s", packFile.getName()));
                         unpackLibrary(libPath, Files.toByteArray(packFile));
-                        monitor.setNote(String.format("Successfully unpacked packed file %s",packFile.getName()));
+                        monitor.setNote(String.format("Successfully unpacked packed file %s", packFile.getName()));
                         packFile.delete();
 
-                        if (checksumValid(libPath, checksums))
-                        {
+                        if (checksumValid(libPath, checksums)) {
                             grabbed.add(artifact);
-                        }
-                        else
-                        {
+                        } else {
                             bad.add(artifact);
                         }
-                    }
-                    catch (OutOfMemoryError oom)
-                    {
+                    } catch (OutOfMemoryError oom) {
                         oom.printStackTrace();
                         bad.add(artifact);
                         artifact.setMemo("Out of Memory: Try restarting installer with JVM Argument: -Xmx1G");
-                    }
-                    catch (Exception e)
-                    {
+                    } catch (Exception e) {
                         e.printStackTrace();
                         bad.add(artifact);
                     }
                 }
-            }
-            else
-            {
+            } else {
                 if (library.isCorrectSide())
                     monitor.setNote(String.format("Considering library %s: Not Downloading {Disabled}", artifact.getDescriptor()));
                 else
@@ -124,49 +101,38 @@ public class DownloadUtils {
         return progress;
     }
 
-    private static boolean checksumValid(File libPath, List<String> checksums)
-    {
-        try
-        {
+    private static boolean checksumValid(File libPath, List<String> checksums) {
+        try {
             if (checksums == null || checksums.isEmpty())
                 return true;
             byte[] fileData = Files.toByteArray(libPath);
             boolean valid = checksums.contains(Hashing.sha1().hashBytes(fileData).toString());
-            if (!valid && libPath.getName().endsWith(".jar"))
-            {
+            if (!valid && libPath.getName().endsWith(".jar")) {
                 valid = validateJar(libPath, fileData, checksums);
             }
             return valid;
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
     }
 
-    public static boolean downloadFileEtag(String libName, File libPath, String libURL)
-    {
-        if (OFFLINE_MODE)
-        {
+    public static boolean downloadFileEtag(String libName, File libPath, String libURL) {
+        if (OFFLINE_MODE) {
             System.out.println("Offline Mode: Not downloading: " + libURL);
             return false;
         }
 
-        try
-        {
+        try {
             URL url = new URL(libURL);
             URLConnection connection = url.openConnection();
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);
 
             String etag = connection.getHeaderField("ETag");
-            if (etag == null)
-            {
-              etag = "-";
-            }
-            else if ((etag.startsWith("\"")) && (etag.endsWith("\"")))
-            {
+            if (etag == null) {
+                etag = "-";
+            } else if ((etag.startsWith("\"")) && (etag.endsWith("\""))) {
                 etag = etag.substring(1, etag.length() - 1);
             }
 
@@ -174,39 +140,29 @@ public class DownloadUtils {
             Files.copy(urlSupplier, libPath);
 
             if (etag.indexOf('-') != -1) return true; //No-etag, assume valid
-            try
-            {
+            try {
                 byte[] fileData = Files.toByteArray(libPath);
                 String md5 = Hashing.md5().hashBytes(fileData).toString();
                 System.out.println("  ETag: " + etag);
                 System.out.println("  MD5:  " + md5);
                 return etag.equalsIgnoreCase(md5);
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 e.printStackTrace();
                 return false;
             }
-        }
-        catch (FileNotFoundException fnf)
-        {
-            if (!libURL.endsWith(PACK_NAME))
-            {
+        } catch (FileNotFoundException fnf) {
+            if (!libURL.endsWith(PACK_NAME)) {
                 fnf.printStackTrace();
             }
             return false;
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
     }
 
-    public static void unpackLibrary(File output, byte[] data) throws IOException
-    {
-        if (output.exists())
-        {
+    public static void unpackLibrary(File output, byte[] data) throws IOException {
+        if (output.exists()) {
             output.delete();
         }
 
@@ -214,18 +170,17 @@ public class DownloadUtils {
 
         //Snag the checksum signature
         String end = new String(decompressed, decompressed.length - 4, 4);
-        if (!end.equals("SIGN"))
-        {
+        if (!end.equals("SIGN")) {
             System.out.println("Unpacking failed, signature missing " + end);
             return;
         }
 
         int x = decompressed.length;
         int len =
-                ((decompressed[x - 8] & 0xFF)      ) |
-                ((decompressed[x - 7] & 0xFF) << 8 ) |
-                ((decompressed[x - 6] & 0xFF) << 16) |
-                ((decompressed[x - 5] & 0xFF) << 24);
+                ((decompressed[x - 8] & 0xFF)) |
+                        ((decompressed[x - 7] & 0xFF) << 8) |
+                        ((decompressed[x - 6] & 0xFF) << 16) |
+                        ((decompressed[x - 5] & 0xFF) << 24);
 
         File temp = File.createTempFile("art", ".pack");
         System.out.println("  Signed");
@@ -263,178 +218,137 @@ public class DownloadUtils {
         temp.delete();
     }
 
-    public static boolean validateJar(File libPath, byte[] data, List<String> checksums) throws IOException
-    {
+    public static boolean validateJar(File libPath, byte[] data, List<String> checksums) throws IOException {
         System.out.println("Checking \"" + libPath.getAbsolutePath() + "\" internal checksums");
 
         HashMap<String, String> files = new HashMap<String, String>();
         String[] hashes = null;
         JarInputStream jar = new JarInputStream(new ByteArrayInputStream(data));
         JarEntry entry = jar.getNextJarEntry();
-        while (entry != null)
-        {
+        while (entry != null) {
             byte[] eData = readFully(jar);
 
-            if (entry.getName().equals("checksums.sha1"))
-            {
+            if (entry.getName().equals("checksums.sha1")) {
                 hashes = new String(eData, Charset.forName("UTF-8")).split("\n");
             }
 
-            if (!entry.isDirectory())
-            {
+            if (!entry.isDirectory()) {
                 files.put(entry.getName(), Hashing.sha1().hashBytes(eData).toString());
             }
             entry = jar.getNextJarEntry();
         }
         jar.close();
 
-        if (hashes != null)
-        {
+        if (hashes != null) {
             boolean failed = !checksums.contains(files.get("checksums.sha1"));
-            if (failed)
-            {
+            if (failed) {
                 System.out.println("    checksums.sha1 failed validation");
-            }
-            else
-            {
+            } else {
                 System.out.println("    checksums.sha1 validated successfully");
-                for (String hash : hashes)
-                {
+                for (String hash : hashes) {
                     if (hash.trim().equals("") || !hash.contains(" ")) continue;
                     String[] e = hash.split(" ");
                     String validChecksum = e[0];
                     String target = hash.substring(validChecksum.length() + 1);
                     String checksum = files.get(target);
 
-                    if (!files.containsKey(target) || checksum == null)
-                    {
+                    if (!files.containsKey(target) || checksum == null) {
                         System.out.println("    " + target + " : missing");
                         failed = true;
-                    }
-                    else if (!checksum.equals(validChecksum))
-                    {
+                    } else if (!checksum.equals(validChecksum)) {
                         System.out.println("    " + target + " : failed (" + checksum + ", " + validChecksum + ")");
                         failed = true;
                     }
                 }
             }
 
-            if (!failed)
-            {
+            if (!failed) {
                 System.out.println("    Jar contents validated successfully");
             }
 
             return !failed;
-        }
-        else
-        {
+        } else {
             System.out.println("    checksums.sha1 was not found, validation failed");
             return false; //Missing checksums
         }
     }
 
-    public static List<String> downloadList(String libURL)
-    {
-        if (OFFLINE_MODE)
-        {
+    public static List<String> downloadList(String libURL) {
+        if (OFFLINE_MODE) {
             System.out.println("Offline Mode: Not downloading: " + libURL);
             return Lists.newArrayList();
         }
 
-        try
-        {
+        try {
             URL url = new URL(libURL);
             URLConnection connection = url.openConnection();
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);
             InputSupplier<InputStream> urlSupplier = new URLISSupplier(connection);
             return CharStreams.readLines(CharStreams.newReaderSupplier(urlSupplier, Charsets.UTF_8));
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             return Collections.emptyList();
         }
 
     }
 
-    public static boolean downloadFile(String libName, File libPath, String libURL, List<String> checksums)
-    {
-        if (OFFLINE_MODE)
-        {
+    public static boolean downloadFile(String libName, File libPath, String libURL, List<String> checksums) {
+        if (OFFLINE_MODE) {
             System.out.println("Offline Mode: Not downloading: " + libURL);
             return false;
         }
 
-        try
-        {
+        try {
             URL url = new URL(libURL);
             URLConnection connection = url.openConnection();
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);
             InputSupplier<InputStream> urlSupplier = new URLISSupplier(connection);
             Files.copy(urlSupplier, libPath);
-            if (checksumValid(libPath, checksums))
-            {
+            if (checksumValid(libPath, checksums)) {
                 return true;
-            }
-            else
-            {
+            } else {
                 return false;
             }
-        }
-        catch (FileNotFoundException fnf)
-        {
-            if (!libURL.endsWith(PACK_NAME))
-            {
+        } catch (FileNotFoundException fnf) {
+            if (!libURL.endsWith(PACK_NAME)) {
                 fnf.printStackTrace();
             }
             return false;
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
     }
 
-    public static boolean extractFile(Artifact art, File libPath, List<String> checksums)
-    {
+    public static boolean extractFile(Artifact art, File libPath, List<String> checksums) {
         final InputStream input = DownloadUtils.class.getResourceAsStream("/maven/" + art.getPath());
-        if (input == null)
-        {
+        if (input == null) {
             System.out.println("File not found in installer archive: /maven/" + art.getPath());
             return false;
         }
 
-        try
-        {
-            Files.copy(new InputSupplier<InputStream>()
-            {
+        try {
+            Files.copy(new InputSupplier<InputStream>() {
                 @Override
-                public InputStream getInput() throws IOException
-                {
+                public InputStream getInput() throws IOException {
                     return input;
                 }
             }, libPath);
             return checksumValid(libPath, checksums);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
     }
 
-    public static byte[] readFully(InputStream stream) throws IOException
-    {
+    public static byte[] readFully(InputStream stream) throws IOException {
         byte[] data = new byte[4096];
         ByteArrayOutputStream entryBuffer = new ByteArrayOutputStream();
         int len;
-        do
-        {
+        do {
             len = stream.read(data);
-            if (len > 0)
-            {
+            if (len > 0) {
                 entryBuffer.write(data, 0, len);
             }
         } while (len != -1);
@@ -442,88 +356,49 @@ public class DownloadUtils {
         return entryBuffer.toByteArray();
     }
 
-    static class URLISSupplier implements InputSupplier<InputStream>
-    {
+    static class URLISSupplier implements InputSupplier<InputStream> {
         private final URLConnection connection;
 
-        private URLISSupplier(URLConnection connection)
-        {
+        private URLISSupplier(URLConnection connection) {
             this.connection = connection;
         }
 
         @Override
-        public InputStream getInput() throws IOException
-        {
+        public InputStream getInput() throws IOException {
             return connection.getInputStream();
         }
     }
 
-    public static IMonitor buildMonitor()
-    {
-        if (ServerInstall.headless)
-        {
-            return new IMonitor()
+    public static IMonitor buildMonitor() {
+        return new IMonitor() {
+            private ProgressMonitor monitor;
+
             {
+                monitor = new ProgressMonitor(null, "Downloading libraries", "Libraries are being analyzed", 0, 1);
+                monitor.setMillisToPopup(0);
+                monitor.setMillisToDecideToPopup(0);
+            }
 
-                @Override
-                public void setMaximum(int max)
-                {
-                }
+            @Override
+            public void setMaximum(int max) {
+                monitor.setMaximum(max);
+            }
 
-                @Override
-                public void setNote(String note)
-                {
-                    System.out.println("MESSAGE: "+ note);
-                }
+            @Override
+            public void setNote(String note) {
+                System.out.println(note);
+                monitor.setNote(note);
+            }
 
-                @Override
-                public void setProgress(int progress)
-                {
+            @Override
+            public void setProgress(int progress) {
+                monitor.setProgress(progress);
+            }
 
-                }
-
-                @Override
-                public void close()
-                {
-
-                }
-
-            };
-        }
-        else
-        {
-            return new IMonitor() {
-                private ProgressMonitor monitor;
-                {
-                    monitor = new ProgressMonitor(null, "Downloading libraries", "Libraries are being analyzed", 0, 1);
-                    monitor.setMillisToPopup(0);
-                    monitor.setMillisToDecideToPopup(0);
-                }
-                @Override
-                public void setMaximum(int max)
-                {
-                    monitor.setMaximum(max);
-                }
-
-                @Override
-                public void setNote(String note)
-                {
-                    System.out.println(note);
-                    monitor.setNote(note);
-                }
-
-                @Override
-                public void setProgress(int progress)
-                {
-                    monitor.setProgress(progress);
-                }
-
-                @Override
-                public void close()
-                {
-                    monitor.close();
-                }
-            };
-        }
+            @Override
+            public void close() {
+                monitor.close();
+            }
+        };
     }
 }

@@ -8,9 +8,7 @@ import javax.swing.Icon;
 import com.google.common.base.Predicate;
 
 public enum InstallerAction {
-    CLIENT("Install client", "Install a new profile to the Mojang client launcher", ClientInstall::new),
-    SERVER("Install server", "Create a new modded server installation", ServerInstall::new),
-    EXTRACT("Extract", "Extract the contained jar file", ExtractAction::new);
+    CLIENT("Install client", "Install a new profile to the Mojang client launcher", ClientInstall::new);
 
     private String label;
     private String tooltip;

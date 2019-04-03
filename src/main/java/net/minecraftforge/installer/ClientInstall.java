@@ -63,6 +63,23 @@ public class ClientInstall implements ActionType {
             }
         }
 
+        // Install Anvil
+        File modsFolder = new File(target, "mods");
+        if (!modsFolder.exists())
+            if (!modsFolder.mkdir()) {
+                JOptionPane.showMessageDialog(null, "There was a problem accessing the mods folder, does it exist?", "Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+
+        // File destination
+        File replayMod = new File(modsFolder, "replaymod.jar");
+
+        // Now try installing
+        if (!DownloadUtils.downloadFile("anvil jar", replayMod, DownloadUtils.ANVIL_URL_CLIENT, null)) {
+            JOptionPane.showMessageDialog(null, "There was a problem downloading Anvil - check your internet connection or the URL", "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
         File librariesDir = new File(target, "libraries");
         IMonitor monitor = DownloadUtils.buildMonitor();
         List<LibraryInfo> libraries = VersionInfo.getLibraries("clientreq", optionals);
@@ -94,7 +111,6 @@ public class ClientInstall implements ActionType {
                 monitor.setProgress(2);
             }
         }
-
 
         if (!VersionInfo.isInheritedJson())
         {

@@ -111,13 +111,6 @@ public class VersionInfo {
         return INSTANCE.versionData.getStringValue("install","logo");
     }
 
-    public static String getURLFileName()
-    {
-        if (!INSTANCE.versionData.isStringValue("install", "urlIcon"))
-            return "/url.png";
-        return INSTANCE.versionData.getStringValue("install", "urlIcon");
-    }
-
     public static boolean getStripMetaInf()
     {
         try

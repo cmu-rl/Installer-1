@@ -126,7 +126,6 @@ public class InstallerPanel extends JPanel {
     {
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         BufferedImage image = getImage(VersionInfo.getLogoFileName(), null);
-        final BufferedImage urlIcon = getImage(VersionInfo.getURLFileName(), URL);
 
         JPanel logoSplash = new JPanel();
         logoSplash.setLayout(new BoxLayout(logoSplash, BoxLayout.Y_AXIS));
@@ -185,8 +184,6 @@ public class InstallerPanel extends JPanel {
         for (InstallerAction action : InstallerAction.values())
         {
             if (action == InstallerAction.CLIENT && VersionInfo.hideClient()) continue;
-            if (action == InstallerAction.SERVER && VersionInfo.hideServer()) continue;
-            if (action == InstallerAction.EXTRACT && VersionInfo.hideExtract()) continue;
             JRadioButton radioButton = new JRadioButton();
             radioButton.setAction(sba);
             radioButton.setText(action.getButtonLabel());
@@ -203,80 +200,6 @@ public class InstallerPanel extends JPanel {
         choicePanel.setAlignmentX(RIGHT_ALIGNMENT);
         choicePanel.setAlignmentY(CENTER_ALIGNMENT);
         add(choicePanel);
-
-        if (VersionInfo.hasOptionals())
-        {
-            optionals = new OptionalListEntry[VersionInfo.getOptionals().size()];
-            int x = 0;
-            for (OptionalLibrary opt : VersionInfo.getOptionals())
-                optionals[x++] = new OptionalListEntry(opt);
-
-            final JList<OptionalListEntry> list = new JList<OptionalListEntry>(optionals);
-
-            list.setCellRenderer(new ListCellRenderer<OptionalListEntry>()
-            {
-                private JPanel panel = new JPanel(new BorderLayout());
-                private JCheckBox check = new JCheckBox();
-                private JLabel icon = new JLabel(new ImageIcon(urlIcon));
-                {
-                    check.setHorizontalAlignment(SwingConstants.LEFT);
-                    icon.setSize(urlIcon.getWidth(), urlIcon.getHeight());
-                    panel.add(check, BorderLayout.LINE_START);
-                    panel.add(icon,  BorderLayout.LINE_END);
-                }
-
-                @Override
-                public Component getListCellRendererComponent(JList<? extends OptionalListEntry> list, OptionalListEntry value, int index, boolean isSelected, boolean cellHasFocus)
-                {
-                    check.setSelected(value.isEnabled());
-                    check.setText(value.lib.getName());
-                    icon.setVisible(value.lib.getURL() != null);
-                    return panel;
-                }
-            });
-
-            list.addMouseListener(new MouseAdapter()
-            {
-                public void mouseClicked(MouseEvent event)
-                {
-                    int index = list.locationToIndex(event.getPoint());
-                    OptionalListEntry entry = list.getModel().getElementAt(index);
-
-                    if (entry.lib.getURL() != null && event.getPoint().getX() > list.getWidth() - urlIcon.getWidth())
-                        openURL(entry.lib.getURL());
-                    else
-                        entry.setEnabled(!entry.isEnabled());
-                    list.repaint(list.getCellBounds(index, index));
-                }
-            });
-            list.addMouseMotionListener(new MouseMotionListener()
-            {
-                public void mouseMoved(MouseEvent event)
-                {
-                    int index = list.locationToIndex(event.getPoint());
-                    OptionalListEntry entry = list.getModel().getElementAt(index);
-                    if (entry.lib.getDesc() != null)
-                    {
-                        StringBuilder tt = new StringBuilder();
-                        tt.append("<html>");
-                        //tt.append("  <h1>").append(index).append(" ").append(entry.lib.getName()).append("</h1>");
-                        //if (entry.lib.getURL() != null)
-                        //    tt.append("  URL: <a href=\"").append(entry.lib.getURL()).append("\">").append(entry.lib.getURL()).append("</a><br />");
-                        if (entry.lib.getDesc() != null)
-                            tt.append(entry.lib.getDesc());
-                        tt.append("</html>");
-                        list.setToolTipText(tt.toString());
-                    }
-                    else
-                        list.setToolTipText(null);
-                }
-
-                @Override public void mouseDragged(MouseEvent event) {}
-            });
-
-
-            add(new JScrollPane(list));
-        }
 
         JPanel entryPanel = new JPanel();
         entryPanel.setLayout(new BoxLayout(entryPanel,BoxLayout.X_AXIS));
