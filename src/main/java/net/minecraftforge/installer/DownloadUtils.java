@@ -130,6 +130,7 @@ public class DownloadUtils {
             connection.setReadTimeout(5000);
 
             String etag = connection.getHeaderField("ETag");
+            System.out.println(etag);
             if (etag == null) {
                 etag = "-";
             } else if ((etag.startsWith("\"")) && (etag.endsWith("\""))) {

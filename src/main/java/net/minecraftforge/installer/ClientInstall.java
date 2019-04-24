@@ -2,12 +2,16 @@ package net.minecraftforge.installer;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
+import java.time.format.DateTimeFormatter.*;
 
 import javax.swing.JOptionPane;
 
@@ -316,12 +320,21 @@ public class ClientInstall implements ActionType {
             HashMap<JsonStringNode, JsonNode> forgeProfileCopy = Maps.newHashMap(profileCopy.get(JsonNodeFactories.string(VersionInfo.getProfileName())).getFields());
             forgeProfileCopy.put(JsonNodeFactories.string("name"), JsonNodeFactories.string(VersionInfo.getProfileName()));
             forgeProfileCopy.put(JsonNodeFactories.string("lastVersionId"), JsonNodeFactories.string(VersionInfo.getVersionTarget()));
+
+            // Set as mostly used profile
+            long currTime = System.currentTimeMillis();
+            String timeString = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(Instant.ofEpochMilli(currTime).atZone(ZoneOffset.UTC));
+            forgeProfileCopy.put(JsonNodeFactories.string("lastUsed"), JsonNodeFactories.string(timeString + "Z"));
         }
         else
         {
+            // Set as mostly used profile
+            long currTime = System.currentTimeMillis();
+            String timeString = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(Instant.ofEpochMilli(currTime).atZone(ZoneOffset.UTC));
             JsonField[] fields = new JsonField[] {
                 JsonNodeFactories.field("name", JsonNodeFactories.string(VersionInfo.getProfileName())),
                 JsonNodeFactories.field("lastVersionId", JsonNodeFactories.string(VersionInfo.getVersionTarget())),
+                    JsonNodeFactories.field("lastUsed", JsonNodeFactories.string(timeString + "Z")),
             };
             profileCopy.put(JsonNodeFactories.string(VersionInfo.getProfileName()), JsonNodeFactories.object(fields));
         }
