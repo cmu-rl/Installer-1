@@ -1,12 +1,12 @@
 {
 "install": {
   "profileName": "forge",
-  "target":"1.11-forge1.11-13.19.0.2138",
-  "path":"net.minecraftforge:forge:1.11-13.19.0.2138",
-  "version":"forge 1.11-13.19.0.2138",
+  "target":"1.12.2-forge1.12.2-14.23.3.2668",
+  "path":"net.minecraftforge:forge:1.12-14.23.3.2668",
+  "version":"forge 1.12-14.23.3.2668",
   "filePath":"",
   "welcome":"Welcome to the simple forge installer.",
-  "minecraft":"1.11",
+  "minecraft":"1.12.2",
   "mirrorList" : "http://files.minecraftforge.net/mirror-brand.list",
   "logo":"/big_logo.png",
   "modList":"absolute",
@@ -27,21 +27,21 @@
   ]
 },
 "versionInfo": {
-  "id": "1.11-forge1.11-13.19.0.2138",
+  "id": "1.12.2-forge1.12.2-14.23.3.2668",
   "time": "2016-11-17T03:22:26+0000",
   "releaseTime": "1960-01-01T00:00:00-0700",
   "type": "release",
   "minecraftArguments": "--username ${auth_player_name} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --accessToken ${auth_access_token} --userType ${user_type} --tweakClass net.minecraftforge.fml.common.launcher.FMLTweaker --versionType Forge",
   "mainClass": "net.minecraft.launchwrapper.Launch",
-  "inheritsFrom": "1.11",
-  "jar": "1.11",
+  "inheritsFrom": "1.12.2",
+  "jar": "1.12.2",
   "libraries": [
     {
-      "name": "net.minecraftforge:forge:1.11-13.19.0.2138",
+      "name": "net.minecraftforge:forge:1.12.2-14.23.3.2668",
       "url": "http://files.minecraftforge.net/maven/"
     },
     {
-      "name": "net.minecraft:launchwrapper:1.12",
+      "name": "net.minecraft:launchwrapper:1.12.2",
       "serverreq":true
     },
     {
