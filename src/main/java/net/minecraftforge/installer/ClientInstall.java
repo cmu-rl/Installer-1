@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
-import java.time.format.DateTimeFormatter.*;
 
 import javax.swing.JOptionPane;
 
@@ -23,7 +22,6 @@ import argo.jdom.JsonNodeFactories;
 import argo.jdom.JsonRootNode;
 import argo.jdom.JsonStringNode;
 import argo.saj.InvalidSyntaxException;
-import net.minecraftforge.installer.transform.TransformInfo;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -67,28 +65,10 @@ public class ClientInstall implements ActionType {
             }
         }
 
-        // Install Anvil
-        File modsFolder = new File(target, "mods");
-        if (!modsFolder.exists())
-            if (!modsFolder.mkdir()) {
-                JOptionPane.showMessageDialog(null, "There was a problem accessing the mods folder, does it exist?", "Error", JOptionPane.ERROR_MESSAGE);
-                return false;
-            }
-
-        // File destination
-        File replayMod = new File(modsFolder, "replaymod.jar");
-
-        // Now try installing
-        if (!DownloadUtils.downloadFile("anvil jar", replayMod, DownloadUtils.ANVIL_URL_CLIENT, null)) {
-            JOptionPane.showMessageDialog(null, "There was a problem downloading Anvil - check your internet connection or the URL", "Error", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-
         File librariesDir = new File(target, "libraries");
         IMonitor monitor = DownloadUtils.buildMonitor();
         List<LibraryInfo> libraries = VersionInfo.getLibraries("clientreq", optionals);
-        List<TransformInfo> transforms = VersionInfo.getTransforms(SIDE);
-        monitor.setMaximum(libraries.size() + transforms.size() + 3);
+        monitor.setMaximum(libraries.size() + 3);
         int progress = 3;
 
         File versionJsonFile = new File(versionTarget,VersionInfo.getVersionTarget()+".json");
@@ -140,6 +120,23 @@ public class ClientInstall implements ActionType {
                 JOptionPane.showMessageDialog(null, "You need to run the version "+VersionInfo.getMinecraftVersion()+" manually at least once", "Error", JOptionPane.ERROR_MESSAGE);
                 return false;
             }
+        }
+
+        // Install Anvil
+        File modsFolder = new File(target, "mods");
+        if (!modsFolder.exists())
+            if (!modsFolder.mkdir()) {
+                JOptionPane.showMessageDialog(null, "There was a problem accessing the mods folder, does it exist?", "Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+
+        // File destination
+        File replayMod = new File(modsFolder, "replaymod.jar");
+
+        // Now try installing
+        if (!DownloadUtils.downloadFile("anvil jar", replayMod, DownloadUtils.ANVIL_URL_CLIENT, null)) {
+            JOptionPane.showMessageDialog(null, "There was a problem downloading Anvil - check your internet connection or the URL", "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
         }
 
         File targetLibraryFile = VersionInfo.getLibraryPath(librariesDir);
@@ -195,17 +192,6 @@ public class ClientInstall implements ActionType {
             }
         }
 
-        for (TransformInfo info : transforms)
-        {
-            monitor.setNote("Transforming " + info.input);
-            monitor.setProgress(progress++);
-            if (!VersionInfo.getTransformer().transform(info, SIDE, target, VersionInfo.getMinecraftVersion()))
-            {
-                JOptionPane.showMessageDialog(null, "There was a problem transforming " + info.input + ". You will need to clear " + info.output.getLocalPath(librariesDir).getAbsolutePath()+" manually and try again", "Error", JOptionPane.ERROR_MESSAGE);
-                return false;
-            }
-        }
-
         monitor.close();
 
         try
@@ -223,14 +209,6 @@ public class ClientInstall implements ActionType {
             {
                 if (optionals.apply(opt.getArtifact()) && opt.isInjected())
                     lst.add(new AppendInfo(opt.getArtifact(), opt.getMaven()));
-            }
-
-            for (TransformInfo info : transforms)
-            {
-                if (info.append)
-                {
-                    lst.add(new AppendInfo(info.output.getDescriptor(), info.maven));
-                }
             }
 
             if (lst.size() > 0)
